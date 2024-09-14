@@ -1,24 +1,27 @@
-FROM debian:10
+FROM debian:12
 
-ENV USER csgo
-ENV HOME /opt/csgo
-ENV STEAMCMD $HOME/steamcmd
-ENV SRCDS $HOME/srcds
+ENV USER=cs2
+ENV HOME=/opt/cs2
+ENV SRCDS=$HOME/srcds
+ENV CS2_APPID=730
+ENV STEAMCMD=/usr/games/steamcmd
 
-RUN apt-get update -y && \
-    apt-get install -y curl lib32gcc1 lib32stdc++6 && \
-    rm -rf /var/lib/apt/lists/* && \
+COPY debian-non-free.sources /etc/apt/sources.list.d/debian.sources
+
+RUN dpkg --add-architecture i386 && \
+    echo 'steamcmd steam/question string I AGREE' | debconf-set-selections && \
+    apt-get update -y && \
+    apt-get install -y curl steamcmd && \
+    apt-get install -y --reinstall ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
     useradd -Md $HOME $USER && \
     mkdir $HOME && \
-    mkdir $STEAMCMD && \
     mkdir $SRCDS && \
     chown -R $USER:$USER $HOME
 
 USER $USER
 
-RUN curl https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xvzC $STEAMCMD && \
-    chmod -R u+x $STEAMCMD
-RUN bash $STEAMCMD/steamcmd.sh +login anonymous +force_install_dir $SRCDS +app_update 740 validate +quit
+RUN $STEAMCMD +force_install_dir $SRCDS +login anonymous +app_update $CS2_APPID validate +quit
 COPY entrypoint.sh /entrypoint.sh
 
 WORKDIR $SRCDS
